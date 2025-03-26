@@ -53,30 +53,29 @@ class LinearRegression:
         return np.dot(X, self.W) + self.b
     
     
-    def compute_cost(self, predictions):
-        return (1/(2*len(predictions)))*np.sum((self.y - predictions)**2)
+    def compute_cost(self,X,y,predictions):
+        return (1/(2*len(predictions)))*np.sum((y - predictions)**2)
     
-    def backward(self, predictions):
+    def backward(self,X,y,predictions):
         n = len(predictions)
-        self.dW = np.dot((predictions - self.y),self.X)/n
-        self.db = np.sum(predictions - self.y)/n 
+        dW = np.dot((predictions - y),X)/n
+        db = np.sum(predictions - y)/n 
+        return dW, db
         
     def fit(self, X,y, iterations):
-        self.X = X
-        self.y = y
         self.initialize_parameters(X.shape[1])
         self.costs = []
         
         for i in range(iterations):
             predictions = self.forward(X)
-            self.costs.append(self.compute_cost(predictions))
-            self.backward(predictions)
+            self.costs.append(self.compute_cost(X,y,predictions))
+            dW, db = self.backward(X,y,predictions)
             
-            self.W -= self.learning_rate*self.dW
-            self.b -= self.learning_rate*self.db
+            self.W -= self.learning_rate*dW
+            self.b -= self.learning_rate*db
             
             if(i % 10 == 0):
-                print(f"Iteration {i} Cost: {self.costs[-1]}")
+                print(f"Iteration {i} Cost: {self.costs[-1]:.5f}")
             
             if i > 0 and abs(self.costs[-1] - self.costs[-2]) < self.convergence_tol:
                 print(f"Converged after {i} iterations")
