@@ -111,15 +111,16 @@ lr.fit(X_train,y_train, 1000)
 
 
 class RegressionMetrics:
+    @staticmethod
     def MSE(y_true, y_pred):
         mse = np.mean((y_true-y_pred)**2)
         return mse
-    
+    @staticmethod
     def RMSE(y_true, y_pred):
         mse = RegressionMetrics.MSE(y_true, y_pred)
         rmse = np.sqrt(mse)
         return rmse
-    
+    @staticmethod
     def R2(y_true, y_pred):
         sse = np.sum((y_true - y_pred)**2)
         sst = np.sum((y_true - np.mean(y_true))**2)
