@@ -233,6 +233,55 @@ print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
 
 
 
+"""
+# Comparing with original sklearn's Logistic Regression Model'
+from sklearn.linear_model import LogisticRegression
+
+# Create and fit the model
+sk_model = LogisticRegression(solver='lbfgs', max_iter=1000)
+sk_model.fit(X_train, y_train)
+
+# Predict probabilities for class 1
+y_train_probs_sk = sk_model.predict_proba(X_train)[:, 1]
+y_test_probs_sk = sk_model.predict_proba(X_test)[:, 1]
+
+# Predict class labels using threshold = 0.5
+y_train_preds_sk = (y_train_probs_sk >= 0.5).astype(int)
+y_test_preds_sk = (y_test_probs_sk >= 0.5).astype(int)
+
+# TRAIN
+train_acc = ClassificationMetrics.accuracy(y_train, y_train_preds_sk)
+train_prec = ClassificationMetrics.precision(y_train, y_train_preds_sk)
+train_rec = ClassificationMetrics.recall(y_train, y_train_preds_sk)
+train_f1 = ClassificationMetrics.f1_score(y_train, y_train_preds_sk)
+train_auc = ClassificationMetrics.roc_auc_score(y_train, y_train_probs_sk)
+
+# TEST
+test_acc = ClassificationMetrics.accuracy(y_test, y_test_preds_sk)
+test_prec = ClassificationMetrics.precision(y_test, y_test_preds_sk)
+test_rec = ClassificationMetrics.recall(y_test, y_test_preds_sk)
+test_f1 = ClassificationMetrics.f1_score(y_test, y_test_preds_sk)
+test_auc = ClassificationMetrics.roc_auc_score(y_test, y_test_probs_sk)
+
+# Print Results
+print()
+print("------ SKLEARN Logistic Regression ------")
+print(f"Train Accuracy:  {train_acc:.4f}")
+print(f"Train Precision: {train_prec:.4f}")
+print(f"Train Recall:    {train_rec:.4f}")
+print(f"Train F1 Score:  {train_f1:.4f}")
+print(f"Train ROC AUC:   {train_auc:.4f}")
+print()
+print(f"Test Accuracy:   {test_acc:.4f}")
+print(f"Test Precision:  {test_prec:.4f}")
+print(f"Test Recall:     {test_rec:.4f}")
+print(f"Test F1 Score:   {test_f1:.4f}")
+print(f"Test ROC AUC:    {test_auc:.4f}")
+
+"""
+
+
+
 
 
 
