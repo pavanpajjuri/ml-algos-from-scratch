@@ -8,7 +8,7 @@ Created on Fri Mar 28 20:23:41 2025
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import load_breast_cancer
+from sklearn.datasets import load_breast_cancer, fetch_openml
 import matplotlib.pyplot as plt
 
 np.random.seed(69)
@@ -17,6 +17,24 @@ np.random.seed(69)
 data = load_breast_cancer()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
+
+
+
+# Fetch the Adult dataset from OpenML
+data = fetch_openml(name='adult', version=2, as_frame=True)
+
+# Create X (features) and y (target) like in breast cancer example
+df = data.frame.copy()
+
+# Rename target column and convert it to binary: '>50K' → 1, '<=50K' → 0
+df['target'] = (df['class'] == '>50K').astype(int)
+df = df.drop(columns='class')  # remove original target column
+
+# Split into X and y
+X = df.drop(columns='target')
+y = df['target']
+
+
 
 print(y.value_counts(normalize=True))
 
