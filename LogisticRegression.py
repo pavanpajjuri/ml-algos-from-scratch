@@ -8,32 +8,34 @@ Created on Fri Mar 28 20:23:41 2025
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import load_breast_cancer, fetch_openml
+from sklearn.datasets import load_breast_cancer, make_classification
 import matplotlib.pyplot as plt
 
 np.random.seed(69)
 
 
+"""
 data = load_breast_cancer()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
+"""
 
 
+# Generate synthetic dataset with 10,000 samples and 20 numerical features
+X, y = make_classification(
+    n_samples=10000,
+    n_features=20,
+    n_informative=10,
+    n_redundant=5,
+    n_repeated=0,
+    n_classes=2,
+    weights=[0.7, 0.3],  # Class imbalance like breast cancer
+    random_state=42
+)
 
-# Fetch the Adult dataset from OpenML
-data = fetch_openml(name='adult', version=2, as_frame=True)
-
-# Create X (features) and y (target) like in breast cancer example
-df = data.frame.copy()
-
-# Rename target column and convert it to binary: '>50K' → 1, '<=50K' → 0
-df['target'] = (df['class'] == '>50K').astype(int)
-df = df.drop(columns='class')  # remove original target column
-
-# Split into X and y
-X = df.drop(columns='target')
-y = df['target']
-
+# Wrap into DataFrame/Series like your original code
+X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
+y = pd.Series(y, name='target')
 
 
 print(y.value_counts(normalize=True))
@@ -108,11 +110,10 @@ class LogisticRegression:
         plt.ylabel('Loss (Binary Cross Entropy)')
         plt.show()
         
-    def predict(self, X):
-        predictions = self.forward(X)
-        threshold = 0.5
-        predictions = np.where(predictions > threshold, 1, 0)
-        return predictions
+    def predict(self, X, threshold = 0.5):
+        prediction_prob = self.forward(X)
+        predictions = np.where(prediction_prob > threshold, 1, 0)
+        return predictions, prediction_prob
   
 
 X_train, y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
@@ -121,8 +122,8 @@ X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
 
 X_train, X_test = standardize_data(X_train, X_test)
 
-lg = LogisticRegression(0.05)
-lg.fit(X_train,y_train, 100)
+lg = LogisticRegression(0.01)
+lg.fit(X_train,y_train, 1000)
 
 
 class ClassificationMetrics:
@@ -154,40 +155,78 @@ class ClassificationMetrics:
             return 0
         return np.divide(2*precision*recall, (precision + recall))
     
+    @staticmethod 
+    def perf_metrics(y_true, y_pred_prob, threshold = 0.5):
+        tp = fp = tn = fn = 0
+        y_pred = np.where(y_pred_prob > threshold, 1, 0)
+        tp = np.sum((y_true == 1) & (y_pred == 1))
+        fp = np.sum((y_true == 0) & (y_pred == 1))
+        tn = np.sum((y_true == 0) & (y_pred == 0))
+        fn = np.sum((y_true == 1) & (y_pred == 0))
+        
+        tpr = tp/(tp + fn) if (tp + fn) > 0 else 0 # Sensitivity
+        fpr = fp/(fp + tn) if (fp + tn) > 0 else 0 # 1- Specificity
+        return fpr, tpr
     
+    @staticmethod 
+    def roc_auc_score(y_true, y_pred_prob, plot = False):
+       thresholds = np.linspace(0, 1, 100)
+       fpr_list, tpr_list = [], []
+       
+       for threshold in thresholds:
+           fpr, tpr = ClassificationMetrics.perf_metrics(y_true, y_pred_prob, threshold = threshold)
+           fpr_list.append(fpr)
+           tpr_list.append(tpr)
+           
+       sorted_pairs = sorted(zip(fpr_list, tpr_list)) # Sort by Fprlist
+       fpr_sorted, tpr_sorted = zip(*sorted_pairs)
+       auc = np.trapz(tpr_sorted, fpr_sorted)
+       
+       if plot:
+           plt.plot(fpr_sorted, tpr_sorted, 'r-', lw=2)
+           plt.plot([0, 1], [0, 1], 'k--', lw=1)
+           plt.xlabel("False Positive Rate")
+           plt.ylabel("True Positive Rate")
+           plt.title(f"ROC Curve (AUC = {auc:.3f})")
+           plt.grid(True)
+           plt.show()
+           
+       return auc
+           
+        
+        
+ 
     
-y_train_pred = lg.predict(X_train)
+y_train_pred, y_train_pred_prob = lg.predict(X_train)
 train_accuracy = ClassificationMetrics.accuracy(y_train, y_train_pred)
 train_precision = ClassificationMetrics.precision(y_train, y_train_pred)
 train_recall = ClassificationMetrics.recall(y_train, y_train_pred)
 train_f1_score = ClassificationMetrics.f1_score(y_train, y_train_pred)
+train_auc_score = ClassificationMetrics.roc_auc_score(y_train, y_train_pred_prob, plot = True)
 
 print(f"Final Training Accuracy Score: {train_accuracy:.4f}")
 print(f"Final Training Precision Score: {train_precision:.4f}")
 print(f"Final Training Recall Score: {train_recall:.4f}")
 print(f"Final Training f1_score Score: {train_f1_score:.4f}")
+print(f"Final Training roc_auc Score: {train_auc_score:.4f}")
 
 
-print(pd.Series(y_test).value_counts(normalize=False))
+#print(pd.Series(y_test).value_counts(normalize=False))
+print()
 
 
-y_test_pred = lg.predict(X_test)
+y_test_pred, y_test_pred_prob = lg.predict(X_test)
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_test_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_test_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_test_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_test_pred)
+test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_test_pred_prob, plot = True)
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-
-
-
-
-
-
-
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
 
 
 
