@@ -4,7 +4,8 @@ import pandas as pd
 from sklearn.datasets import fetch_california_housing, make_regression
 import matplotlib.pyplot as plt
 
-np.random.seed(69)
+seed = 69
+np.random.seed(seed)
 
 data = fetch_california_housing()
 X = pd.DataFrame(data.data, columns = data.feature_names)[:5000]
