@@ -11,7 +11,8 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer, make_classification
 import matplotlib.pyplot as plt
 
-np.random.seed(69)
+seed = 69
+np.random.seed(seed)
 
 
 """
@@ -30,7 +31,7 @@ X, y = make_classification(
     n_repeated=0,
     n_classes=2,
     weights=[0.7, 0.3],  # Class imbalance like breast cancer
-    random_state=42
+    random_state=seed
 )
 
 # Wrap into DataFrame/Series like your original code
