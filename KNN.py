@@ -14,12 +14,12 @@ import matplotlib.pyplot as plt
 seed = 69
 np.random.seed(seed)
 
-"""data = load_iris()
+data = load_iris()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
-"""
 
-# Generate synthetic dataset with 10,000 samples and 20 numerical features
+
+"""# Generate synthetic dataset with 10,000 samples and 20 numerical features
 X, y = make_classification(
     n_samples=10000,
     n_features=20,
@@ -33,7 +33,7 @@ X, y = make_classification(
 
 # Wrap into DataFrame/Series like your original code
 X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
-y = pd.Series(y, name='target')
+y = pd.Series(y, name='target')"""
 
 data = pd.concat([X,y], axis = 1)
 data = data.sample(frac = 1, random_state = seed).reset_index()
@@ -55,35 +55,23 @@ def standardize_data(X_train, X_test):
 class KNN:
     def __init__(self, n_neighbours = 5):
         self.n_neighbours = n_neighbours
-        
-    def euclidean_distance(self, x1, x2):
-        return np.linalg.norm(x1-x2)
     
     def fit(self, X_train, y_train):
-        self.X_train = X_train
-        self.y_train = y_train
+        self.X_train = np.array(X_train)
+        self.y_train = np.array(y_train)
         
     def predict(self, X):
-        predictions = []
-        for x in X:
-            prediction = self._predict(x)
-            predictions.append(prediction)
-            
-        return np.array(predictions)   
+        X = np.array(X)
+        return np.array([self._predict(x) for x in X])   
     
     def _predict(self, x):
-        
-        distances = []
-        for x_train in self.X_train:
-            distance = self.euclidean_distance(x_train, x)
-            distances.append(distance)
-        
-        distances = np.array(distances)
-        
-        n_neighbours_idxs = np.argsort(distances)[:self.n_neighbours]
-        labels = self.y_train[n_neighbours_idxs].tolist()
-        most_occuring_value = max(labels, key = labels.count)
-        return most_occuring_value
+    
+        distances = np.linalg.norm(self.X_train - x, axis=1)
+        # Get indices of k closest points
+        k_indices = np.argsort(distances)[:self.n_neighbours]
+        k_labels = self.y_train[k_indices].tolist()
+        most_common = max(k_labels, key = k_labels.count)
+        return most_common
         
 
 class ClassificationMetrics:
