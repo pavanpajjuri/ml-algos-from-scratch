@@ -163,3 +163,24 @@ print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+
+
+
+
+
+"""
+from sklearn.naive_bayes import GaussianNB
+model = GaussianNB()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+
+test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+test_precision = ClassificationMetrics.precision(y_test, y_pred)
+test_recall = ClassificationMetrics.recall(y_test, y_pred)
+test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+print()
+print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+print(f"Final testing Precision Score: {test_precision:.4f}")
+print(f"Final testing Recall Score: {test_recall:.4f}")
+print(f"Final testing f1_score Score: {test_f1_score:.4f}")"""
