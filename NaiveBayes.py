@@ -18,6 +18,21 @@ data = load_breast_cancer()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
 
+
+def remove_highly_correlated_features(df, threshold=0.9):
+    corr_matrix = df.corr().abs()
+
+    # Upper triangle mask to avoid duplicates
+    upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+    
+    # Identify columns to drop
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    
+    return df.drop(columns=to_drop), to_drop
+
+# Apply to feature columns only
+X, dropped_columns = remove_highly_correlated_features(X, threshold=0.8)
+
 data = pd.concat([X,y], axis = 1)
 data = data.sample(frac = 1, random_state = seed).reset_index()
 
@@ -148,6 +163,7 @@ X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
 
 X_train, X_test = standardize_data(X_train, X_test)
 
+
 nb = NaiveBayes()
 nb.fit(X_train,y_train)
 
@@ -163,8 +179,6 @@ print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-
-
 
 
 
