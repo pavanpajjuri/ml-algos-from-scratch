@@ -84,7 +84,15 @@ class NaiveBayes:
             posteriors.append(posterior)
         
         posteriors = np.array(posteriors)
-        return self.unique_classes[np.argmax(posteriors, axis = 0)]
+        predictions = self.unique_classes[np.argmax(posteriors, axis = 0)]
+        
+        log_probs = posteriors.T
+        max_log = np.max(log_probs, axis = 1, keepdims= True)
+        probs = np.exp(log_probs - max_log)
+        probs = probs/np.sum(probs, axis = 1, keepdims = True)
+        positive_class_prob = probs[:, np.where(self.unique_classes == 1)[0][0]]
+        
+        return predictions, positive_class_prob
     
     
     
@@ -167,18 +175,21 @@ X_train, X_test = standardize_data(X_train, X_test)
 nb = NaiveBayes()
 nb.fit(X_train,y_train)
 
-y_pred = nb.predict(X_test)
+y_pred,y_pred_prob = nb.predict(X_test)
 
 
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
+
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
 
 
 
@@ -187,14 +198,19 @@ from sklearn.naive_bayes import GaussianNB
 model = GaussianNB()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
+y_pred_prob = model.predict_proba(X_test)[:,1]
 
 
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
+
 print()
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
-print(f"Final testing f1_score Score: {test_f1_score:.4f}")"""
+print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
+"""
