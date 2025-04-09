@@ -20,6 +20,7 @@ y = pd.Series(data = data.target, name = 'target')
 
 
 def remove_highly_correlated_features(df, threshold=0.9):
+    # Dropping features that are highly correlated to match conditional independence of features according to Naive Bayes
     corr_matrix = df.corr().abs()
 
     # Upper triangle mask to avoid duplicates
