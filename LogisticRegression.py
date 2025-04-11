@@ -15,8 +15,8 @@ seed = 69
 np.random.seed(seed)
 
 
-"""
-data = load_breast_cancer()
+
+"""data = load_breast_cancer()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
 """
@@ -259,7 +259,7 @@ print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
 
 
 

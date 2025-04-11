@@ -189,29 +189,30 @@ class ClassificationMetrics:
     
     @staticmethod 
     def roc_auc_score(y_true, y_pred_prob, plot = False):
-       thresholds = np.linspace(0, 1, 100)
-       fpr_list, tpr_list = [], []
+        thresholds = np.linspace(0, 1, 100)
+        fpr_list, tpr_list = [], []
        
-       for threshold in thresholds:
-           fpr, tpr = ClassificationMetrics.perf_metrics(y_true, y_pred_prob, threshold = threshold)
+        for threshold in thresholds:
+            fpr, tpr = ClassificationMetrics.perf_metrics(y_true, y_pred_prob, threshold = threshold)
+            fpr_list.append(fpr)
+            tpr_list.append(tpr)
            
-           fpr_list.append(fpr)
-           tpr_list.append(tpr)
-    
-       sorted_pairs = sorted(zip(fpr_list, tpr_list)) # Sort by Fprlist
-       fpr_sorted, tpr_sorted = zip(*sorted_pairs)
-       auc = np.trapz(tpr_sorted, fpr_sorted)
+        
+        sorted_pairs = sorted(zip(fpr_list, tpr_list)) # Sort by Fprlist
+        #print(sorted_pairs)
+        fpr_sorted, tpr_sorted = zip(*sorted_pairs)
+        auc = np.trapz(tpr_sorted, fpr_sorted)
        
-       if plot:
-           plt.plot(fpr_sorted, tpr_sorted, 'r-', lw=2)
-           plt.plot([0, 1], [0, 1], 'k--', lw=1)
-           plt.xlabel("False Positive Rate")
-           plt.ylabel("True Positive Rate")
-           plt.title(f"ROC Curve (AUC = {auc:.3f})")
-           plt.grid(True)
-           plt.show()
+        if plot:
+            plt.plot(fpr_sorted, tpr_sorted, 'r-', lw=2)
+            plt.plot([0, 1], [0, 1], 'k--', lw=1)
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.title(f"ROC Curve (AUC = {auc:.3f})")
+            plt.grid(True)
+            plt.show()
            
-       return auc
+        return auc
     
     @staticmethod    
     def rankdata_numpy(values):
@@ -255,12 +256,21 @@ dt = DecisionTree(max_depth = 4, min_samples = 2)
 dt.fit(X_train,y_train)
 y_pred , y_pred_prob = dt.predict(X_test)
 
+# for ROC AUC if the y_pred_prob are exactly 0/1 we cant assign correct classes to them
+
+for i in range(len(y_pred_prob)):
+    if y_pred_prob[i] == 0:
+        y_pred_prob[i] = 0.0001
+    elif y_pred_prob[i] == 1:
+        y_pred_prob[i] = 0.99
+
 
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
 test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+#test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
 
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
