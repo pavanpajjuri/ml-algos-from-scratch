@@ -193,6 +193,38 @@ class ClassificationMetrics:
            plt.show()
            
        return auc
+   
+    @staticmethod    
+    def rankdata_numpy(values):
+        sorter = np.argsort(values)
+    
+        # Assign ranks: 1 to N
+        ranks = np.empty(len(values), dtype=float)
+        ranks[sorter] = np.arange(1, len(values) + 1)
+    
+        # Handle ties — not needed in our example, but for safety
+        unique_vals, counts = np.unique(values, return_counts=True)
+        for val, count in zip(unique_vals, counts):
+            if count > 1:
+                idxs = np.where(values == val)[0]
+                avg_rank = np.mean(ranks[idxs])
+                ranks[idxs] = avg_rank
+    
+        return ranks
+    
+    @staticmethod 
+    def roc_auc_rank_based(y_true, y_scores):    
+        n_pos = np.sum(y_true == 1)
+        n_neg = np.sum(y_true == 0)
+    
+        if n_pos == 0 or n_neg == 0:
+            return None  # Not defined
+    
+        ranks = ClassificationMetrics.rankdata_numpy(y_scores)
+        sum_ranks_pos = np.sum(ranks[y_true == 1])
+        
+        auc = (sum_ranks_pos - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+        return auc
            
         
         
@@ -203,7 +235,7 @@ train_accuracy = ClassificationMetrics.accuracy(y_train, y_train_pred)
 train_precision = ClassificationMetrics.precision(y_train, y_train_pred)
 train_recall = ClassificationMetrics.recall(y_train, y_train_pred)
 train_f1_score = ClassificationMetrics.f1_score(y_train, y_train_pred)
-train_auc_score = ClassificationMetrics.roc_auc_score(y_train, y_train_pred_prob, plot = True)
+train_auc_score = ClassificationMetrics.roc_auc_rank_based(y_train, y_train_pred_prob)
 
 print(f"Final Training Accuracy Score: {train_accuracy:.4f}")
 print(f"Final Training Precision Score: {train_precision:.4f}")
@@ -221,7 +253,7 @@ test_accuracy = ClassificationMetrics.accuracy(y_test, y_test_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_test_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_test_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_test_pred)
-test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_test_pred_prob, plot = True)
+test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_test_pred_prob)
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
