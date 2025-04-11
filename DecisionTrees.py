@@ -52,10 +52,11 @@ class DecisionTree():
                 
     def entropy(self, y):
         entropy = 0
-        labels = np.unique(y)
-        for label in labels:
-            yi = len(y[y==label])/len(y)
-            entropy += (-yi*np.log2(yi)) + (-(1-yi)*np.log2(1-yi))
+        labels, counts = np.unique(y, return_counts=True)
+        probabilities = counts/len(y)
+        for p in probabilities:
+            if p > 0:
+                entropy += (-p*np.log2(p))
         return entropy
     
     def information_gain(self, parent, left, right):
