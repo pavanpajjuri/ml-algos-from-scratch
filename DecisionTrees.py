@@ -8,7 +8,7 @@ Created on Wed Apr  9 16:08:13 2025
 
 import numpy as np
 import pandas as pd
-from sklearn.datasets import make_classification, load_breast_cancer
+from sklearn.datasets import load_breast_cancer
 import matplotlib.pyplot as plt
 
 seed = 69
@@ -34,16 +34,17 @@ test_data = data[int(0.8*len(data)):]
 
 
 class Node():
-    def __init__(self, feature = None, threshold = None, left = None, right = None, gain = None, value = None):
+    def __init__(self, feature = None, threshold = None, left = None, right = None, gain = None, value = None, prob = None):
         self.feature = feature
         self.threshold = threshold
         self.left = left
         self.right = right
         self.gain = gain
         self.value = value
+        self.prob = prob
     
     def __repr__(self):
-        return f"Node(feature = {self.feature}, threshold = {self.threshold}, value = {self.value})"
+        return f"Node(feature = {self.feature}, threshold = {self.threshold}, value = {self.value}, prob = {self.prob})"
 
 class DecisionTree():
     def __init__(self,min_samples = 2, max_depth = 2):
@@ -107,17 +108,20 @@ class DecisionTree():
                             left=left_node,
                             right=right_node,
                             gain=best_split['gain'],
-                            value=None
+                            value=None,
+                            prob = None
                             )
         y = list(y)
         value = max(y, key = y.count)
+        prob = np.mean(y)  # Works only for 0/1 Class as prob is for prob of Class 1
         return Node(
                 feature=None,
                 threshold=None,
                 left=None,
                 right=None,
                 gain=None,
-                value=value
+                value=value,
+                prob = prob
             )
         
         
@@ -126,11 +130,12 @@ class DecisionTree():
         self.root = self.build_tree(dataset)
         
     def predict(self, X):
-        return np.array([self.predict_single(x, self.root) for x in X])
+        preds = np.array([self.predict_single(x, self.root) for x in X])
+        return preds[:,0],preds[:,1]
     
     def predict_single(self, x, Node):
         if Node.value is not None:
-            return Node.value
+            return (Node.value,Node.prob)
         else:
             feature = x[int(Node.feature)]
             if feature <= Node.threshold:
@@ -189,9 +194,10 @@ class ClassificationMetrics:
        
        for threshold in thresholds:
            fpr, tpr = ClassificationMetrics.perf_metrics(y_true, y_pred_prob, threshold = threshold)
+           
            fpr_list.append(fpr)
            tpr_list.append(tpr)
-           
+    
        sorted_pairs = sorted(zip(fpr_list, tpr_list)) # Sort by Fprlist
        fpr_sorted, tpr_sorted = zip(*sorted_pairs)
        auc = np.trapz(tpr_sorted, fpr_sorted)
@@ -206,6 +212,40 @@ class ClassificationMetrics:
            plt.show()
            
        return auc
+    
+    @staticmethod    
+    def rankdata_numpy(values):
+        sorter = np.argsort(values)
+    
+        # Assign ranks: 1 to N
+        ranks = np.empty(len(values), dtype=float)
+        ranks[sorter] = np.arange(1, len(values) + 1)
+    
+        # Handle ties — not needed in our example, but for safety
+        unique_vals, counts = np.unique(values, return_counts=True)
+        for val, count in zip(unique_vals, counts):
+            if count > 1:
+                idxs = np.where(values == val)[0]
+                avg_rank = np.mean(ranks[idxs])
+                ranks[idxs] = avg_rank
+    
+        return ranks
+    
+    @staticmethod 
+    def roc_auc_rank_based(y_true, y_scores):    
+        n_pos = np.sum(y_true == 1)
+        n_neg = np.sum(y_true == 0)
+    
+        if n_pos == 0 or n_neg == 0:
+            return None  # Not defined
+    
+        ranks = ClassificationMetrics.rankdata_numpy(y_scores)
+        sum_ranks_pos = np.sum(ranks[y_true == 1])
+        
+        auc = (sum_ranks_pos - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
+        return auc
+    
+    
 
 X_train, y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
 X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
@@ -213,26 +253,22 @@ X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
 
 dt = DecisionTree()
 dt.fit(X_train,y_train)
-y_pred = dt.predict(X_test)
-    
+y_pred , y_pred_prob = dt.predict(X_test)
+
+
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
-#test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
+test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
 
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-#print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
-
-
-
-
-
-
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+ 
 
 
 
