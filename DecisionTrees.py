@@ -47,9 +47,10 @@ class Node():
         return f"Node(feature = {self.feature}, threshold = {self.threshold}, value = {self.value}, prob = {self.prob})"
 
 class DecisionTree():
-    def __init__(self,min_samples = 2, max_depth = 2):
+    def __init__(self,min_samples = 2, max_depth = 2, max_features = None):
         self.min_samples = min_samples
         self.max_depth = max_depth
+        self.max_features = max_features
                 
     def entropy(self, y):
         entropy = 0
@@ -71,6 +72,13 @@ class DecisionTree():
     def best_split(self, dataset):
         X,y = dataset[:,:-1],dataset[:,-1]
         num_features = X.shape[1]
+        
+        if self.max_features is None:
+            feature_indices = np.arange(num_features)
+        else:
+            sample_size = min(self.max_features, num_features)
+            feature_indices = np.random.choice(num_features, size = sample_size, replace = False)
+        
         best_split = {
             'gain':0,
             'feature':None,
@@ -78,7 +86,7 @@ class DecisionTree():
             'left_dataset':None,
             'right_dataset':None
             }
-        for feature_idx in range(num_features):
+        for feature_idx in feature_indices:
             thresholds = np.unique(X[:,feature_idx]) 
             for threshold in thresholds:
                 left_dataset = dataset[dataset[:,feature_idx]<=threshold]
@@ -252,7 +260,7 @@ X_train, y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
 X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
 
 
-dt = DecisionTree(max_depth = 4, min_samples = 2)
+dt = DecisionTree(max_depth = 4, min_samples = 2, max_features=None)
 dt.fit(X_train,y_train)
 y_pred , y_pred_prob = dt.predict(X_test)
 
