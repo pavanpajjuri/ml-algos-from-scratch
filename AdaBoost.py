@@ -94,3 +94,25 @@ if __name__=="__main__":
     print(f"Final testing Recall Score: {test_recall:.4f}")
     print(f"Final testing f1_score Score: {test_f1_score:.4f}")
     print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
+    
+    
+    from sklearn.ensemble import AdaBoostClassifier
+    
+    adb = AdaBoostClassifier(n_estimators = 10,random_state=seed)
+    adb.fit(X_train, y_train)
+    
+    y_pred = adb.predict(X_test)
+    y_pred_prob = adb.predict_proba(X_test)[:,1]
+    
+    etst_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+    test_precision = ClassificationMetrics.precision(y_test, y_pred)
+    test_recall = ClassificationMetrics.recall(y_test, y_pred)
+    test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+    test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+    
+    print()
+    print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+    print(f"Final testing Precision Score: {test_precision:.4f}")
+    print(f"Final testing Recall Score: {test_recall:.4f}")
+    print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+    print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
