@@ -11,12 +11,7 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer
 import matplotlib.pyplot as plt
 
-seed = 69
-np.random.seed(seed = seed)
 
-data = load_breast_cancer()
-X = pd.DataFrame(data = data.data, columns = data.feature_names)
-y = pd.Series(data = data.target, name = 'target')
 
 def remove_lowly_correlated_features(X,y, low_threshold = 0.05):
     X_y = pd.concat([X,y], axis = 1)
@@ -24,13 +19,6 @@ def remove_lowly_correlated_features(X,y, low_threshold = 0.05):
     low_info_cols = target_corr[target_corr.abs() < low_threshold].index
     X = X.drop(columns = low_info_cols)
     return X,y
-    
-X,y = remove_lowly_correlated_features(X,y)
-
-
-data = pd.concat([X,y], axis = 1)
-train_data = data[:int(0.8*len(data))]
-test_data = data[int(0.8*len(data)):]
 
 
 class Node():
@@ -52,24 +40,38 @@ class DecisionTree():
         self.max_depth = max_depth
         self.max_features = max_features
                 
-    def entropy(self, y):
-        entropy = 0
-        labels, counts = np.unique(y, return_counts=True)
-        probabilities = counts/len(y)
-        for p in probabilities:
+    def entropy(self, y, weights):
+        total_weight = np.sum(weights)
+        entropy = 0.0
+        unique_classes = np.unique(y)
+        
+        for cls in unique_classes:
+            cls_mask = (y == cls)
+            cls_weight = np.sum(weights[cls_mask])
+            p = cls_weight / total_weight
             if p > 0:
-                entropy += (-p*np.log2(p))
+                entropy += -p * np.log2(p)
         return entropy
     
-    def information_gain(self, parent, left, right):
-        parent_entropy = self.entropy(parent)
-        left_weight = len(left)/len(parent)
-        right_weight = len(right)/len(parent)
-        child_entropy = left_weight*self.entropy(left) + right_weight*self.entropy(right)
-        gain = parent_entropy - child_entropy
+    def information_gain(self, y, weights, left_mask, right_mask):
+        total_weight = np.sum(weights)
+        
+        y_left, w_left = y[left_mask], weights[left_mask]
+        y_right, w_right = y[right_mask], weights[right_mask]
+        
+        parent_entropy = self.entropy(y, weights)
+        left_entropy = self.entropy(y_left, w_left)
+        right_entropy = self.entropy(y_right, w_right)
+    
+        weighted_entropy = (
+            np.sum(w_left) / total_weight * left_entropy +
+            np.sum(w_right) / total_weight * right_entropy
+        )
+        
+        gain = parent_entropy - weighted_entropy
         return gain
     
-    def best_split(self, dataset):
+    def best_split(self, dataset, weights):
         X,y = dataset[:,:-1],dataset[:,-1]
         num_features = X.shape[1]
         
@@ -84,32 +86,39 @@ class DecisionTree():
             'feature':None,
             'threshold':None,
             'left_dataset':None,
-            'right_dataset':None
+            'right_dataset':None,
+            'left_weights':None,
+            'right_weights':None
             }
+        
         for feature_idx in feature_indices:
             thresholds = np.unique(X[:,feature_idx]) 
             for threshold in thresholds:
-                left_dataset = dataset[dataset[:,feature_idx]<=threshold]
-                right_dataset = dataset[dataset[:,feature_idx]>threshold]
-                if len(left_dataset) and len(right_dataset):
-                    gain = self.information_gain(y,left_dataset[:,-1],right_dataset[:,-1])
+                
+                left_mask = X[:,feature_idx]<=threshold
+                right_mask = ~left_mask
+                
+                if np.any(left_mask) and np.any(right_mask):
+                    gain = self.information_gain(y, weights, left_mask, right_mask)
                     if gain > best_split['gain']:
                         best_split['gain'] = gain
                         best_split['feature'] = feature_idx
                         best_split['threshold'] = threshold
-                        best_split['left_dataset'] = left_dataset
-                        best_split['right_dataset'] = right_dataset        
+                        best_split['left_dataset'] = dataset[left_mask]
+                        best_split['right_dataset'] = dataset[right_mask]   
+                        best_split['left_weights'] = weights[left_mask]
+                        best_split['right_weights'] = weights[right_mask]
         return best_split
                 
         
-    def build_tree(self, dataset, depth = 0):
+    def build_tree(self, dataset, weights, depth = 0):
         X,y = dataset[:,:-1],dataset[:,-1]
         samples = len(X)
         if samples > self.min_samples and depth <= self.max_depth:
-            best_split = self.best_split(dataset)     
+            best_split = self.best_split(dataset, weights)     
             if best_split['gain']:
-                left_node = self.build_tree(best_split['left_dataset'], depth + 1)
-                right_node = self.build_tree(best_split['right_dataset'], depth + 1)
+                left_node = self.build_tree(best_split['left_dataset'], best_split['left_weights'], depth + 1)
+                right_node = self.build_tree(best_split['right_dataset'], best_split['right_weights'], depth + 1)
                 return Node(
                             feature=best_split['feature'],
                             threshold=best_split['threshold'],
@@ -119,9 +128,14 @@ class DecisionTree():
                             value=None,
                             prob = None
                             )
-        y = list(y)
-        value = max(y, key = y.count)
-        prob = np.mean(y)  # Works only for 0/1 Class as prob is for prob of Class 1
+        unique_classes = np.unique(y)
+        value = unique_classes[np.argmax([np.sum(weights[y == cls]) for cls in unique_classes])]
+        
+        total_weight = np.sum(weights)
+        positive_weight = np.sum(weights[y == 1])
+        prob = positive_weight / total_weight if total_weight > 0 else 0.0
+
+        #prob = np.mean(y)  # Works only for 0/1 Class as prob is for prob of Class 1
         return Node(
                 feature=None,
                 threshold=None,
@@ -129,13 +143,18 @@ class DecisionTree():
                 right=None,
                 gain=None,
                 value=value,
-                prob = prob
+                prob=prob
             )
         
         
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weights = None):
+        y = np.ravel(np.array(y))
         dataset = np.concatenate((X,y.reshape(-1,1)), axis = 1)
-        self.root = self.build_tree(dataset)
+        if sample_weights is None:
+            sample_weights = np.ones(len(y))/len(y)
+        
+        self.sample_weights = sample_weights
+        self.root = self.build_tree(dataset, sample_weights)
         
     def predict(self, X):
         preds = np.array([self.predict_single(x, self.root) for x in X])
@@ -254,95 +273,72 @@ class ClassificationMetrics:
         auc = (sum_ranks_pos - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
         return auc
     
+if __name__ == "__main__":
+    seed = 69
+    np.random.seed(seed = seed)
     
-
-X_train, y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
-X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
-
-
-dt = DecisionTree(max_depth = 4, min_samples = 2, max_features=None)
-dt.fit(X_train,y_train)
-y_pred , y_pred_prob = dt.predict(X_test)
-
-# for ROC AUC if the y_pred_prob are exactly 0/1 we cant assign correct classes to them
-
-"""for i in range(len(y_pred_prob)):
-    if y_pred_prob[i] == 0:
-        y_pred_prob[i] = 0.0001
-    elif y_pred_prob[i] == 1:
-        y_pred_prob[i] = 0.99"""
-
-
-test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
-test_precision = ClassificationMetrics.precision(y_test, y_pred)
-test_recall = ClassificationMetrics.recall(y_test, y_pred)
-test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
-test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
-#test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
-
-
-print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
-print(f"Final testing Precision Score: {test_precision:.4f}")
-print(f"Final testing Recall Score: {test_recall:.4f}")
-print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
- 
-
-
-"""from sklearn.tree import DecisionTreeClassifier
-
-dt = DecisionTreeClassifier(max_depth = 4,random_state = seed,min_samples_split=2)
-dt.fit(X_train, y_train)
-
-y_pred = dt.predict(X_test)
-y_pred_prob = dt.predict_proba(X_test)[:,1]
-
-etst_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
-test_precision = ClassificationMetrics.precision(y_test, y_pred)
-test_recall = ClassificationMetrics.recall(y_test, y_pred)
-test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
-test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
-
-print()
-print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
-print(f"Final testing Precision Score: {test_precision:.4f}")
-print(f"Final testing Recall Score: {test_recall:.4f}")
-print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-print(f"Final Training roc_auc Score: {test_auc_score:.4f}")"""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    data = load_breast_cancer()
+    X = pd.DataFrame(data = data.data, columns = data.feature_names)
+    y = pd.Series(data = data.target, name = 'target')
+        
+    X,y = remove_lowly_correlated_features(X,y)
+    
+    
+    data = pd.concat([X,y], axis = 1)
+    train_data = data[:int(0.8*len(data))]
+    test_data = data[int(0.8*len(data)):]
+    
+    
+    X_train, y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
+    X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
+    
+    
+    dt = DecisionTree(max_depth = 4, min_samples = 2, max_features=None)
+    dt.fit(X_train,y_train)
+    y_pred , y_pred_prob = dt.predict(X_test)
+    
+    # for ROC AUC if the y_pred_prob are exactly 0/1 we cant assign correct classes to them
+    
+    """for i in range(len(y_pred_prob)):
+        if y_pred_prob[i] == 0:
+            y_pred_prob[i] = 0.0001
+        elif y_pred_prob[i] == 1:
+            y_pred_prob[i] = 0.99"""
+    
+    
+    test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+    test_precision = ClassificationMetrics.precision(y_test, y_pred)
+    test_recall = ClassificationMetrics.recall(y_test, y_pred)
+    test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+    test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+    #test_auc_score = ClassificationMetrics.roc_auc_score(y_test, y_pred_prob, plot = True)
+    
+    
+    print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+    print(f"Final testing Precision Score: {test_precision:.4f}")
+    print(f"Final testing Recall Score: {test_recall:.4f}")
+    print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+    print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
+     
+    
+    
+    """from sklearn.tree import DecisionTreeClassifier
+    
+    dt = DecisionTreeClassifier(max_depth = 4,random_state = seed,min_samples_split=2)
+    dt.fit(X_train, y_train)
+    
+    y_pred = dt.predict(X_test)
+    y_pred_prob = dt.predict_proba(X_test)[:,1]
+    
+    etst_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+    test_precision = ClassificationMetrics.precision(y_test, y_pred)
+    test_recall = ClassificationMetrics.recall(y_test, y_pred)
+    test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+    test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+    
+    print()
+    print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+    print(f"Final testing Precision Score: {test_precision:.4f}")
+    print(f"Final testing Recall Score: {test_recall:.4f}")
+    print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+    print(f"Final Training roc_auc Score: {test_auc_score:.4f}")"""
