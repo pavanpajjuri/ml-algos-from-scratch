@@ -71,7 +71,7 @@ X_test,y_test = test_data.iloc[:,:-1].values,test_data.iloc[:,-1].values
 
 
 
-rf = RandomForest()
+rf = RandomForest(n_trees = 7, max_depth = 4, min_samples = 2)
 rf.fit(X_train,y_train)
 
 y_pred, y_pred_prob = rf.predict(X_test)
@@ -85,6 +85,30 @@ test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
 test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
 
 
+print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+print(f"Final testing Precision Score: {test_precision:.4f}")
+print(f"Final testing Recall Score: {test_recall:.4f}")
+print(f"Final testing f1_score Score: {test_f1_score:.4f}")
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+
+
+
+
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(n_estimators = 7, max_depth = 4,random_state = seed,min_samples_split=2)
+rf.fit(X_train, y_train)
+
+y_pred = rf.predict(X_test)
+y_pred_prob = rf.predict_proba(X_test)[:,1]
+
+etst_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+test_precision = ClassificationMetrics.precision(y_test, y_pred)
+test_recall = ClassificationMetrics.recall(y_test, y_pred)
+test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+
+print()
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
