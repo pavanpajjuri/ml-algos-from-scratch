@@ -18,14 +18,14 @@ data = load_breast_cancer()
 X = pd.DataFrame(data = data.data, columns = data.feature_names)
 y = pd.Series(data = data.target, name = 'target')
 
-def remove_highly_correlated_features(X,y, low_threshold = 0.05):
+def remove_lowly_correlated_features(X,y, low_threshold = 0.05):
     X_y = pd.concat([X,y], axis = 1)
     target_corr = X_y.corr()['target'].drop('target')
     low_info_cols = target_corr[target_corr.abs() < low_threshold].index
     X = X.drop(columns = low_info_cols)
     return X,y
     
-X,y = remove_highly_correlated_features(X,y)
+X,y = remove_lowly_correlated_features(X,y)
 
 
 data = pd.concat([X,y], axis = 1)
@@ -258,11 +258,11 @@ y_pred , y_pred_prob = dt.predict(X_test)
 
 # for ROC AUC if the y_pred_prob are exactly 0/1 we cant assign correct classes to them
 
-for i in range(len(y_pred_prob)):
+"""for i in range(len(y_pred_prob)):
     if y_pred_prob[i] == 0:
         y_pred_prob[i] = 0.0001
     elif y_pred_prob[i] == 1:
-        y_pred_prob[i] = 0.99
+        y_pred_prob[i] = 0.99"""
 
 
 test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
@@ -277,7 +277,7 @@ print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
  
 
 
