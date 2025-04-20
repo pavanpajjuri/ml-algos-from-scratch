@@ -50,16 +50,20 @@ class RandomForest:
         
         for _ in range(self.n_trees):
             tree = DecisionTree(max_depth=self.max_depth, min_samples=self.min_samples)
-            dataset_sample = dataset.iloc[np.random.choice(n_samples, n_samples)]
+            dataset_sample = dataset.iloc[np.random.choice(n_samples, n_samples, replace = True)]
             X_sample, y_sample = dataset_sample.iloc[:,:-1].values, dataset_sample.iloc[:,-1].values
             tree.fit(X_sample, y_sample)
             self.trees.append(tree)
             
     def predict(self, X):
-        predictions = np.array([tree.predict(X) for tree in self.trees])
+        predictions = np.array([tree.predict(X)[0] for tree in self.trees])
         predictions = predictions.T # To change the matrix to (n_samples, n_trees)
-        majority_preds = np.array([np.bincount(row.flatten().astype(int)).argmax() for row in predictions])
-        return majority_preds
+        majority_preds = np.array([np.bincount(row.astype(int)).argmax() for row in predictions])
+        
+        probabilities = np.array([tree.predict(X)[1] for tree in self.trees])
+        pred_prob = np.mean(probabilities, axis = 0)
+        
+        return majority_preds, pred_prob
     
 
 X_train,y_train = train_data.iloc[:,:-1].values,train_data.iloc[:,-1].values
@@ -70,7 +74,7 @@ X_test,y_test = test_data.iloc[:,:-1].values,test_data.iloc[:,-1].values
 rf = RandomForest()
 rf.fit(X_train,y_train)
 
-y_pred = rf.predict(X_test)
+y_pred, y_pred_prob = rf.predict(X_test)
 
 
 
@@ -78,13 +82,13 @@ test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
 test_precision = ClassificationMetrics.precision(y_test, y_pred)
 test_recall = ClassificationMetrics.recall(y_test, y_pred)
 test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
-#test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
+test_auc_score = ClassificationMetrics.roc_auc_rank_based(y_test, y_pred_prob)
 
 
 print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-#print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
         
         
