@@ -46,10 +46,10 @@ class RandomForest:
         X = pd.DataFrame(X)
         y = pd.Series(y)
         dataset = pd.concat([X,y], axis = 1)
-        n_samples = len(dataset)
+        n_samples, n_features  = X.shape[0], X.shape[1]
         
         for _ in range(self.n_trees):
-            tree = DecisionTree(max_depth=self.max_depth, min_samples=self.min_samples)
+            tree = DecisionTree(max_depth=self.max_depth, min_samples=self.min_samples, max_features=int(np.sqrt(n_features)))
             dataset_sample = dataset.iloc[np.random.choice(n_samples, n_samples, replace = True)]
             X_sample, y_sample = dataset_sample.iloc[:,:-1].values, dataset_sample.iloc[:,-1].values
             tree.fit(X_sample, y_sample)
@@ -94,7 +94,7 @@ print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
 
 
 
-from sklearn.ensemble import RandomForestClassifier
+"""from sklearn.ensemble import RandomForestClassifier
 
 rf = RandomForestClassifier(n_estimators = 7, max_depth = 4,random_state = seed,min_samples_split=2)
 rf.fit(X_train, y_train)
@@ -113,6 +113,6 @@ print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
 print(f"Final testing Precision Score: {test_precision:.4f}")
 print(f"Final testing Recall Score: {test_recall:.4f}")
 print(f"Final testing f1_score Score: {test_f1_score:.4f}")
-print(f"Final Training roc_auc Score: {test_auc_score:.4f}")
+print(f"Final Training roc_auc Score: {test_auc_score:.4f}")"""
         
         
