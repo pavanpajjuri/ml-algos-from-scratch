@@ -12,12 +12,12 @@ from sklearn.datasets import load_breast_cancer
 from DecisionTrees import ClassificationMetrics
 
 class SVM:
-    def __init__(self, kernel = 'poly', degree = 2, sigma = 0.1, epochs = 1000, learning_rate = 0.001):
+    def __init__(self, kernel = 'poly', degree = 2, c = 1, C = 1, sigma = 0.1, epochs = 1000, learning_rate = 0.001):
         self.alpha = None
         self.b = 0
         self.degree = degree
-        self.C = 1
-        self.c = 1
+        self.C = C
+        self.c = c
         self.sigma = sigma
         self.learning_rate = learning_rate
         self.epochs = epochs
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     alpha_index = np.where(alpha > 0.5)[0]
     support_vectors = y[alpha_index]-(alpha*y).dot(K)[alpha_index]"""
     
-    svm = SVM(kernel = 'poly', degree = 1)
+    svm = SVM(C = 1.0, kernel = 'poly', degree = 1)
     svm.fit(X_train, y_train)
     y_pred = svm.predict(X_test)
     y_pred = np.where(y_pred==-1, 0, 1)
@@ -109,6 +109,22 @@ if __name__ == "__main__":
     print(f"Final testing f1_score Score: {test_f1_score:.4f}")
     #print(f"Final testing roc_auc Score: {test_auc_score:.4f}")
     
+    from sklearn.svm import SVC
+
+    model = SVC(C=1.0, kernel='poly', degree=1, gamma='scale')
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    test_accuracy = ClassificationMetrics.accuracy(y_test, y_pred)
+    test_precision = ClassificationMetrics.precision(y_test, y_pred)
+    test_recall = ClassificationMetrics.recall(y_test, y_pred)
+    test_f1_score = ClassificationMetrics.f1_score(y_test, y_pred)
+
+    print()
+    print(f"Final testing Accuracy Score: {test_accuracy:.4f}")
+    print(f"Final testing Precision Score: {test_precision:.4f}")
+    print(f"Final testing Recall Score: {test_recall:.4f}")
+    print(f"Final testing f1_score Score: {test_f1_score:.4f}")
 
      
     
