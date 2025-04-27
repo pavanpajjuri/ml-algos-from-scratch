@@ -22,17 +22,21 @@ class SVM:
         self.learning_rate = learning_rate
         self.epochs = epochs
         
-        if kernel == 'poly':
+        if kernel == 'linear':
+            self.kernel = self.linear_kernel
+        elif kernel == 'poly':
             self.kernel = self.polynomial_kernel
         elif kernel == 'rbf':
             self.kernel = self.gaussian_kernel
     
+    def linear_kernel(self, X, Z):
+        return X.dot(Z.T)
     
     def polynomial_kernel(self, X, Z):
         return (self.c + X.dot(Z.T))**self.degree
     
     def gaussian_kernel(self,X,Z):
-        return np.exp(-(1/self.sigma**2)*np.linalg.norm(X[:,np.newaxis]-Z[np.newaxis,:],axis = 2)**2)
+        return np.exp(-(0.5/self.sigma**2)*np.linalg.norm(X[:,np.newaxis]-Z[np.newaxis,:],axis = 2)**2)
     
     def fit(self, X,y):
         m = X.shape[0]
@@ -40,17 +44,15 @@ class SVM:
         self.alpha = np.random.random(m)
         K = self.kernel(X,X)
         y_mul_kernel = np.outer(y,y)*K
-        self.loss = []
+        Loss = []
         
         for i in range(self.epochs):
             gradient = np.ones(m) - self.alpha.dot(y_mul_kernel)
             self.alpha = self.alpha + self.learning_rate*gradient
-            
-            self.alpha[self.alpha > self.C] = self.C
-            self.alpha[self.alpha < 0] = 0
-            
+            self.alpha = np.clip(self.alpha, 0, self.C)
+
             loss = np.sum(self.alpha) - 0.5*np.sum((np.outer(self.alpha, self.alpha)*y_mul_kernel))
-            self.loss.append(loss)
+            Loss.append(loss)
         
         alpha_index = np.where(self.alpha > 0)[0]
         
@@ -58,7 +60,7 @@ class SVM:
         self.sv_alpha = self.alpha[alpha_index]
         self.sv_y = y[alpha_index]
         self.sv_X = X[alpha_index]
-        return loss
+        return Loss
     
     def predict(self,X):
         y = (self.sv_alpha*self.sv_y).dot(self.kernel(self.sv_X,X)) + self.b
@@ -74,7 +76,11 @@ if __name__ == "__main__":
     data = load_breast_cancer()
     X = pd.DataFrame(data = data.data, columns = data.feature_names)
     y = pd.Series(data = data.target, name = 'target')
-    #y = y.replace({0:-1, 1:1})
+    
+    from sklearn.datasets import make_classification
+    X, y = make_classification(n_samples=1000, n_features=10, n_classes=2, random_state=42)
+    X = pd.DataFrame(X, columns=[f"feature_{i}" for i in range(X.shape[1])])
+    y = pd.Series(y, name='target')    
     
     data = pd.concat([X, y], axis = 1)
     train_data = data[:int(0.8*len(data))]
@@ -82,14 +88,7 @@ if __name__ == "__main__":
     
     X_train,y_train = train_data.iloc[:,:-1].values, train_data.iloc[:,-1].values
     X_test, y_test = test_data.iloc[:,:-1].values, test_data.iloc[:,-1].values
-    
-    """K = np.random.random((10,10))
-    y = np.random.randint(0,2,10)
-    y_mul_kernel = np.outer(y,y)*K
-    alpha = np.random.rand(10)
-    grad = alpha.dot(y_mul_kernel)
-    alpha_index = np.where(alpha > 0.5)[0]
-    support_vectors = y[alpha_index]-(alpha*y).dot(K)[alpha_index]"""
+
     
     svm = SVM(C = 1.0, kernel = 'poly', degree = 1)
     svm.fit(X_train, y_train)
