@@ -102,7 +102,21 @@ if __name__ == "__main__":
     print(silhouette_score(X, labels))
     
     plot_clusters_direct(X, labels, centroids)
+    
+    
+    
+    """from sklearn.cluster import KMeans
+    from sklearn.metrics import silhouette_score
         
+    # Fit KMeans
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    kmeans.fit(X)
+    labels = kmeans.labels_
+    
+    # Compute Silhouette Score
+    score = silhouette_score(X, labels)
+    print(f"Silhouette Score Sklearn: {score:.4f}")
+            """
     
     
     
