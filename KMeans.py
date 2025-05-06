@@ -86,6 +86,8 @@ def plot_clusters_direct(X, labels, centroids):
     plt.grid(True)
     plt.show()
     
+    
+    
 if __name__ == "__main__":
     seed = 69
     np.random.seed(seed = seed)
