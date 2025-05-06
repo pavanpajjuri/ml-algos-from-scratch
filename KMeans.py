@@ -24,14 +24,14 @@ class KMeans:
         centroids_expanded = self.centroids[np.newaxis,:,:]
         diff = X_expanded - centroids_expanded
         dist = np.sqrt(np.sum(diff**2, axis = 2))
-        points = np.argmin(dist, axis = 1)
-        return points
+        labels = np.argmin(dist, axis = 1)
+        return labels
     
-    def compute_mean(self, X, points):
+    def compute_mean(self, X, labels):
         centroids = np.zeros((self.K, X.shape[1]))
         for i in range(self.K):
-            if np.any(points == i):
-                centroids[i] = X[points == i].mean(axis=0)
+            if np.any(labels == i):
+                centroids[i] = X[labels == i].mean(axis=0)
             else:
                 centroids[i] = X[np.random.randint(0, X.shape[0])]
         return centroids
@@ -39,15 +39,36 @@ class KMeans:
     def fit(self, X, iterations = 10):
         self.initialize_centroids(X)
         for i in range(iterations):
-            points = self.assign_points_to_centroids(X)
-            new_centroids = self.compute_mean(X, points)
+            labels = self.assign_points_to_centroids(X)
+            new_centroids = self.compute_mean(X, labels)
             if np.allclose(self.centroids, new_centroids):
                 break
             self.centroids = new_centroids
-        return self.centroids, points
+        return self.centroids, labels
     
     def predict(self, X_new):
         return self.assign_points_to_centroids(X_new)
+
+
+def silhouette_score(X, labels):
+    n_samples = len(X)
+    
+    # Replace sklearn's pairwise_distances
+    diff = X[:, np.newaxis, :] - X[np.newaxis, :, :]
+    distance_matrix = np.linalg.norm(diff, axis=2)
+
+    silhouette_scores = []
+
+    for i in range(n_samples):
+        same_cluster = (labels == labels[i])
+
+        a = np.mean(distance_matrix[i][same_cluster]) if np.sum(same_cluster) > 1 else 0
+        b = np.min([np.mean(distance_matrix[i][labels == lbl]) for lbl in np.unique(labels) if lbl != labels[i]])
+
+        s = (b - a) / max(a, b) if max(a, b) > 0 else 0
+        silhouette_scores.append(s)
+    
+    return np.mean(silhouette_scores)
 
 
 def plot_clusters_direct(X, labels, centroids):
@@ -77,9 +98,10 @@ if __name__ == "__main__":
     K = 3
         
     kmeans = KMeans(K = K)
-    centroids, points = kmeans.fit(X, 100)
+    centroids, labels = kmeans.fit(X, 100)
+    print(silhouette_score(X, labels))
     
-    plot_clusters_direct(X, points, centroids)
+    plot_clusters_direct(X, labels, centroids)
         
     
     
