@@ -49,6 +49,22 @@ class KMeans:
     def predict(self, X_new):
         return self.assign_points_to_centroids(X_new)
 
+
+def plot_clusters_direct(X, labels, centroids):
+    plt.figure(figsize=(8, 5))
+    
+    for i in np.unique(labels):
+        cluster = X[labels == i]
+        plt.scatter(cluster[:, 0], cluster[:, 1], label=f"Cluster {i}", alpha=0.6)
+    
+    plt.scatter(centroids[:, 0], centroids[:, 1], s=100, marker='X', color='black', label='Centroids')
+    plt.title("KMeans Clusters (Feature 1 vs Feature 2)")
+    plt.xlabel("Feature 1")
+    plt.ylabel("Feature 2")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+    
 if __name__ == "__main__":
     seed = 69
     np.random.seed(seed = seed)
@@ -62,6 +78,8 @@ if __name__ == "__main__":
         
     kmeans = KMeans(K = K)
     centroids, points = kmeans.fit(X, 100)
+    
+    plot_clusters_direct(X, points, centroids)
         
     
     
